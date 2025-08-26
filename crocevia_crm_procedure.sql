@@ -151,15 +151,15 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
             # Generate realistic French email using Faker
             # Use Faker email method but with French domains for localization
             if random.random() < 0.7:  # 70% use name-based emails
-                local = f"{first_name.lower()}.{last_name.lower()}".replace("\'", "").replace("ç", "c").replace("é", "e").replace("è", "e").replace("à", "a").replace("ù", "u")
-                domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
-                email = f"{local}@{domain}"
+                local = (first_name.lower() + "." + last_name.lower()).replace("\'", "").replace("ç", "c").replace("é", "e").replace("è", "e").replace("à", "a").replace("ù", "u")
+                domain = random.choice(french_domains)
+                email = local + "@" + domain
             else:  # 30% use more varied patterns
                 email = self.faker.email()
                 # Replace domain with French one
                 local_part = email.split("@")[0]
-                domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
-                email = f"{local_part}@{domain}"
+                domain = random.choice(french_domains)
+                email = local_part + "@" + domain
             
             # Generate French phone number using Faker
             phone = self.faker.phone_number()
@@ -175,7 +175,7 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
             
             customers.append({
                 "row_id": i,
-                "customer_id": f"CRV-{i:010d}",
+                "customer_id": "CRV-" + str(i).zfill(10),
                 "first_name": first_name,
                 "last_name": last_name,
                 "email": email,
@@ -270,7 +270,7 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
             duplicates = []
             for src_idx in source_indices:
                 src_row = df.iloc[src_idx].copy()
-                src_row["customer_id"] = f"{src_row[\"customer_id\"]}_DUP"
+                src_row["customer_id"] = src_row["customer_id"] + "_DUP"
                 src_row["overlap_type"] = "DUPLICATE"
                 
                 # Add slight variations for realism
@@ -278,7 +278,7 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
                     # Modify email slightly
                     email_parts = str(src_row["email"]).split("@")
                     if len(email_parts) == 2:
-                        src_row["email"] = f"{email_parts[0]}{random.randint(0, 9)}@{email_parts[1]}"
+                        src_row["email"] = email_parts[0] + str(random.randint(0, 9)) + "@" + email_parts[1]
                 
                 if random.random() < 0.5 and src_row["phone"]:
                     # Modify last digit of phone
@@ -363,9 +363,9 @@ def main(session: snowpark.Session) -> str:
     """
     print("Loading Summit Sports customer data...")
     source_customers_df = session.table("SS_101.RAW_CUSTOMER.CUSTOMER_LOYALTY").to_pandas()
-    print(f"Loaded {len(source_customers_df)} source customers")
+    print("Loaded " + str(len(source_customers_df)) + " source customers")
     
-    print(f"Generating {TARGET_SIZE} Crocevia customers with controlled overlaps...")
+    print("Generating " + str(TARGET_SIZE) + " Crocevia customers with controlled overlaps...")
     customers_df = generate_crocevia_customers(
         source_customers_df, 
         num_customers=TARGET_SIZE,
@@ -379,13 +379,13 @@ def main(session: snowpark.Session) -> str:
     validation = validate_overlap_results(customers_df, source_customers_df)
     
     print("\\n=== Generation Results ===")
-    print(f"Total records: {validation[\"total_records\"]:,}")
-    print(f"Overlap breakdown: {validation[\"overlap_type_breakdown\"]}")
-    print(f"Triple match: {validation[\"target_triple_pct\"]:.1%}")
-    print(f"Email overlap: {validation[\"target_email_pct\"]:.1%} (actual: {validation[\"actual_email_overlap\"]:.1%})")
-    print(f"Phone overlap: {validation[\"target_phone_pct\"]:.1%} (actual: {validation[\"actual_phone_overlap\"]:.1%})")
-    print(f"Name overlap: {validation[\"target_name_pct\"]:.1%} (actual: {validation[\"actual_name_overlap\"]:.1%})")
-    print(f"Duplicates: {validation[\"duplicate_pct\"]:.1%}")
+    print("Total records: " + str(validation["total_records"]))
+    print("Overlap breakdown: " + str(validation["overlap_type_breakdown"]))
+    print("Triple match: {:.1%}".format(validation["target_triple_pct"]))
+    print("Email overlap: {:.1%} (actual: {:.1%})".format(validation["target_email_pct"], validation["actual_email_overlap"]))
+    print("Phone overlap: {:.1%} (actual: {:.1%})".format(validation["target_phone_pct"], validation["actual_phone_overlap"]))
+    print("Name overlap: {:.1%} (actual: {:.1%})".format(validation["target_name_pct"], validation["actual_name_overlap"]))
+    print("Duplicates: {:.1%}".format(validation["duplicate_pct"]))
     
     print("Writing Crocevia customers to Snowflake...")
     session.write_pandas(
@@ -397,7 +397,7 @@ def main(session: snowpark.Session) -> str:
     
     print("Crocevia CRM generation complete!")
     
-    return f"Crocevia CRM generation complete! Generated {len(customers_df)} records."
+    return "Crocevia CRM generation complete! Generated " + str(len(customers_df)) + " records."
 ';
 
 -- =======================================================================
