@@ -25,8 +25,7 @@ USE SCHEMA RAW_DATA;
 -- Create the stored procedure
 CREATE OR REPLACE PROCEDURE CROCEVIA.RAW_DATA.GENERATE_CROCEVIA_CRM(
     "TARGET_SIZE" NUMBER(38,0) DEFAULT 10000,
-    "SOURCE_SAMPLE_SIZE" NUMBER(38,0) DEFAULT 5000,
-    "WRITEMODE" VARCHAR DEFAULT 'overwrite'
+    "SOURCE_SAMPLE_SIZE" NUMBER(38,0) DEFAULT 5000
 )
 RETURNS VARCHAR
 LANGUAGE PYTHON
@@ -36,17 +35,15 @@ HANDLER = 'main'
 EXECUTE AS OWNER
 AS '
 import snowflake.snowpark as snowpark
-from snowflake.snowpark.functions import col, when, lit, uniform, rand
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Optional, Tuple
-import uuid
 import random
 from faker import Faker
 
 
-class CroceviaCRMGenerator:
+def generate_crocevia_customers(source_customers_df: pd.DataFrame, 
+                              num_customers: int = 10000,
+                              source_sample_size: int = 5000) -> pd.DataFrame:
     """
     Generates synthetic Crocevia grocery chain CRM data with controlled overlaps
     to Summit Sports CRM for customer identity resolution testing.
@@ -354,67 +351,53 @@ class CroceviaCRMGenerator:
         }
 
 
-def main(session: snowpark.Session, 
-         target_size: int = 10000, 
-         source_sample_size: int = 5000,
-         writemode: str = "overwrite") -> str:
+def main(session: snowpark.Session) -> str:
     """
-    Main execution function following the example_data_gen.sql pattern.
+    Main function to generate Crocevia CRM with controlled overlaps.
     
     Args:
         session: Snowflake Snowpark session
-        target_size: Number of Crocevia customers to generate
-        source_sample_size: Sample size from source Summit Sports CRM
-        writemode: Write mode for output table (\"overwrite\" or \"append\")
     
     Returns:
         Success message
     """
-    print("Starting Crocevia CRM generation...")
+    print("Loading Summit Sports customer data...")
+    source_customers_df = session.table("SS_101.RAW_CUSTOMER.CUSTOMER_LOYALTY").to_pandas()
+    print(f"Loaded {len(source_customers_df)} source customers")
     
-    # Configuration
-    SOURCE_TABLE = "SS_101.RAW_CUSTOMER.CUSTOMER_LOYALTY"
-    TARGET_TABLE = "CROCEVIA.RAW_DATA.CROCEVIA_CRM"
+    print(f"Generating {TARGET_SIZE} Crocevia customers with controlled overlaps...")
+    customers_df = generate_crocevia_customers(
+        source_customers_df, 
+        num_customers=TARGET_SIZE,
+        source_sample_size=SOURCE_SAMPLE_SIZE
+    )
     
-    try:
-        # Step 1: Load source CRM data
-        print(f"Loading source data from {SOURCE_TABLE}...")
-        source_df = session.table(SOURCE_TABLE).to_pandas()
-        print(f"Loaded {len(source_df)} source records")
-        
-        # Step 2: Initialize generator
-        print("Initializing CRM generator...")
-        generator = CroceviaCRMGenerator(
-            source_crm_df=source_df,
-            target_size=target_size,
-            source_sample_size=source_sample_size
-        )
-        
-        # Step 3: Generate CRM data
-        crm_df = generator.generate_crm_data()
-        
-        # Step 4: Validate results
-        print("Validating results...")
-        validation = generator.validate_results(crm_df)
-        
-        print("\\n=== Generation Results ===")
-        print(f"Total records: {validation[\"total_records\"]:,}")
-        print(f"Triple match: {validation[\"triple_match_pct\"]:.1%}")
-        print(f"Email overlap: {validation[\"email_overlap_pct\"]:.1%}")
-        print(f"Phone overlap: {validation[\"phone_overlap_pct\"]:.1%}")
-        print(f"Name overlap: {validation[\"name_overlap_pct\"]:.1%}")
-        print(f"Duplicates: {validation[\"duplicate_pct\"]:.1%}")
-        
-        # Step 5: Write to Snowflake
-        print(f"\\nWriting results to {TARGET_TABLE}...")
-        session.create_dataframe(crm_df).write.mode(writemode).save_as_table(TARGET_TABLE)
-        
-        return f"Crocevia CRM generation complete! Generated {len(crm_df)} records."
-        
-    except Exception as e:
-        error_msg = f"Error in CRM generation: {str(e)}"
-        print(error_msg)
-        return error_msg
+    print("Adding duplicate customers for realism...")
+    customers_df = add_duplicate_customers(customers_df)
+    
+    print("Validating overlap results...")
+    validation = validate_overlap_results(customers_df, source_customers_df)
+    
+    print("\\n=== Generation Results ===")
+    print(f"Total records: {validation[\"total_records\"]:,}")
+    print(f"Overlap breakdown: {validation[\"overlap_type_breakdown\"]}")
+    print(f"Triple match: {validation[\"target_triple_pct\"]:.1%}")
+    print(f"Email overlap: {validation[\"target_email_pct\"]:.1%} (actual: {validation[\"actual_email_overlap\"]:.1%})")
+    print(f"Phone overlap: {validation[\"target_phone_pct\"]:.1%} (actual: {validation[\"actual_phone_overlap\"]:.1%})")
+    print(f"Name overlap: {validation[\"target_name_pct\"]:.1%} (actual: {validation[\"actual_name_overlap\"]:.1%})")
+    print(f"Duplicates: {validation[\"duplicate_pct\"]:.1%}")
+    
+    print("Writing Crocevia customers to Snowflake...")
+    session.write_pandas(
+        customers_df, 
+        "CROCEVIA.RAW_DATA.CROCEVIA_CRM", 
+        auto_create_table=True, 
+        overwrite=True
+    )
+    
+    print("Crocevia CRM generation complete!")
+    
+    return f"Crocevia CRM generation complete! Generated {len(customers_df)} records."
 ';
 
 -- =======================================================================
@@ -422,7 +405,7 @@ def main(session: snowpark.Session,
 -- =======================================================================
 
 -- Test with small dataset (1000 records)
-CALL CROCEVIA.RAW_DATA.GENERATE_CROCEVIA_CRM(1000, 500, 'overwrite');
+CALL CROCEVIA.RAW_DATA.GENERATE_CROCEVIA_CRM(1000, 500);
 
 -- Validate the generated data
 SELECT 
@@ -437,7 +420,7 @@ ORDER BY count DESC;
 SELECT * FROM CROCEVIA.RAW_DATA.CROCEVIA_CRM LIMIT 10;
 
 -- Full production run (10,000 records)
--- CALL CROCEVIA.RAW_DATA.GENERATE_CROCEVIA_CRM(10000, 5000, 'overwrite');
+-- CALL CROCEVIA.RAW_DATA.GENERATE_CROCEVIA_CRM(10000, 5000);
 
 -- Monitor table size and structure
 SELECT 
