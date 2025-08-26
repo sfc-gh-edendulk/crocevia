@@ -390,7 +390,7 @@ def main(session: snowpark.Session) -> str:
     print("Writing Crocevia customers to Snowflake...")
     session.write_pandas(
         customers_df, 
-        "CROCEVIA.RAW_DATA.CROCEVIA_CRM", 
+        "CROCEVIA_CRM", 
         auto_create_table=True, 
         overwrite=True
     )
