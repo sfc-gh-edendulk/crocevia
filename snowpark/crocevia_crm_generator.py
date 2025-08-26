@@ -306,15 +306,3 @@ def main(session: snowpark.Session) -> pd.DataFrame:
     return customers_df.sample(n=min(100, len(customers_df)))
 
 
-if __name__ == "__main__":
-    # For standalone execution
-    from snowflake.snowpark import Session
-    
-    # Create session (assumes default connection)
-    session = Session.builder.getOrCreate()
-    
-    try:
-        result = main(session)
-        print(f"\nSample of generated data:\n{result.head()}")
-    finally:
-        session.close()
