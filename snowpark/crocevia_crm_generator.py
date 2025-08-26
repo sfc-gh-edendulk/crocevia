@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Tuple
 import uuid
 import random
+from faker import Faker
 
 
 class CroceviaCRMGenerator:
@@ -56,23 +57,11 @@ class CroceviaCRMGenerator:
         self.PHONE_MISSING_PCT = 0.20   # 20% missing phones
         self.DUPLICATE_PCT = 0.10       # 10% duplicate customers
         
-        # French localization data
-        self.FRENCH_FIRST_NAMES = [
-            'Jean', 'Marie', 'Pierre', 'Sophie', 'Michel', 'Catherine',
-            'Philippe', 'Nathalie', 'Alain', 'Isabelle', 'François', 'Sylvie',
-            'Bernard', 'Martine', 'Patrick', 'Christine', 'Daniel', 'Françoise',
-            'Thierry', 'Monique', 'Laurent', 'Brigitte', 'André', 'Dominique',
-            'Nicolas', 'Véronique', 'Stéphane', 'Sandrine', 'Julien', 'Céline'
-        ]
+        # Initialize French Faker
+        self.faker = Faker('fr_FR')
+        Faker.seed(42)  # For reproducible results
         
-        self.FRENCH_LAST_NAMES = [
-            'Martin', 'Bernard', 'Dubois', 'Thomas', 'Robert', 'Petit',
-            'Richard', 'Durand', 'Leroy', 'Moreau', 'Simon', 'Laurent',
-            'Lefebvre', 'Michel', 'Garcia', 'David', 'Bertrand', 'Roux',
-            'Vincent', 'Fournier', 'Morel', 'Girard', 'Andre', 'Lefevre',
-            'Mercier', 'Dupont', 'Lambert', 'Bonnet', 'François', 'Martinez'
-        ]
-        
+        # French email domains for realistic localization
         self.FRENCH_EMAIL_DOMAINS = [
             'gmail.com', 'orange.fr', 'free.fr', 'wanadoo.fr', 
             'sfr.fr', 'laposte.net', 'hotmail.fr', 'yahoo.fr'
@@ -126,35 +115,40 @@ class CroceviaCRMGenerator:
         self.name_indices = np.random.choice(remaining, size=self.name_extra_count, replace=False)
 
     def _generate_synthetic_customer_data(self) -> pd.DataFrame:
-        """Generate base synthetic customer data with French localization."""
+        """Generate base synthetic customer data with French localization using Faker."""
         np.random.seed(42)
         random.seed(42)
+        self.faker.seed_instance(42)  # Ensure reproducible Faker results
         
         customers = []
         
         for i in range(self.target_size):
-            # Generate base synthetic data
-            first_name = random.choice(self.FRENCH_FIRST_NAMES)
-            last_name = random.choice(self.FRENCH_LAST_NAMES)
+            # Generate French names using Faker
+            first_name = self.faker.first_name()
+            last_name = self.faker.last_name()
             
-            # Generate synthetic email
-            local = f"{first_name.lower()}.{last_name.lower()}".replace("'", "").replace("ç", "c")
-            domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
-            email = f"{local}@{domain}"
+            # Generate realistic French email using Faker
+            # Use Faker's email method but with French domains for localization
+            if random.random() < 0.7:  # 70% use name-based emails
+                local = f"{first_name.lower()}.{last_name.lower()}".replace("'", "").replace("ç", "c").replace("é", "e").replace("è", "e").replace("à", "a").replace("ù", "u")
+                domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
+                email = f"{local}@{domain}"
+            else:  # 30% use more varied patterns
+                email = self.faker.email()
+                # Replace domain with French one
+                local_part = email.split('@')[0]
+                domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
+                email = f"{local_part}@{domain}"
             
-            # Generate French phone number
-            area_code = random.choice(['01', '02', '03', '04', '05', '06', '07', '08', '09'])
-            phone = f"{area_code} {random.randint(10, 99)} {random.randint(10, 99)} {random.randint(10, 99)} {random.randint(10, 99)}"
+            # Generate French phone number using Faker
+            phone = self.faker.phone_number()
             
-            # Generate postal code (French format)
-            postal_code = f"{random.randint(1000, 95999):05d}" if random.random() < self.POSTAL_PRESENT_PCT else None
+            # Generate French postal code using Faker
+            postal_code = self.faker.postcode() if random.random() < self.POSTAL_PRESENT_PCT else None
             
-            # Generate date of birth (18-90 years old)
+            # Generate date of birth using Faker (18-90 years old)
             if random.random() < self.DOB_PRESENT_PCT:
-                birth_year = random.randint(1934, 2006)
-                birth_month = random.randint(1, 12)
-                birth_day = random.randint(1, 28)  # Safe day range
-                date_of_birth = date(birth_year, birth_month, birth_day)
+                date_of_birth = self.faker.date_of_birth(minimum_age=18, maximum_age=90)
             else:
                 date_of_birth = None
             
