@@ -1,0 +1,89 @@
+# Crocevia CRM Generation Rules & Decisions
+
+## Project Overview
+Creating a synthetic grocery/hypermarket CRM dataset (Crocevia) with controlled overlaps to Summit Sports CRM for customer identity resolution testing.
+
+## Key Architectural Decisions
+
+### Snowpark Implementation
+- **Platform**: Snowflake/Snowpark for Python for native cloud execution
+- **Scalability**: Handles millions of records directly in Snowflake compute
+- **Performance**: Leverages Snowflake's distributed processing vs local Python
+
+### Data Generation Strategy
+- **Source Sampling**: 5,000 rows from SS_101.RAW_CUSTOMER.CUSTOMER_LOYALTY for testing
+- **Target Size**: 10,000 rows for initial validation (scales to millions)
+- **Localization**: French names, addresses, phone formats, postal codes
+
+### Overlap Control Mechanisms
+- **Triple Match**: 20% exact matches on email + phone + name from same source record
+- **Email Overlap**: 60% total (includes triple matches)
+- **Phone Overlap**: 50% total (includes triple matches)  
+- **Name Overlap**: 35% total (includes triple matches)
+- **Independent Sampling**: Non-triple overlaps can intersect for realistic complexity
+
+### Noise Simulation (Real-world CRM Issues)
+- **Missing Data**: 15% missing emails, 20% missing phones
+- **Anonymous Transactions**: Represented by missing contact info
+- **Duplicate Customers**: 10% with slight variations (email domains, phone digits)
+- **Incomplete Profiles**: 40% have DOB, 60% have postal codes
+- **Cash Transactions**: Implicit in missing/incomplete customer records
+
+### Database Structure
+```
+CROCEVIA.RAW_DATA.CROCEVIA_CRM
+├── customer_id (CRV-prefix, distinct from Summit Sports)
+├── email (French domains: orange.fr, free.fr, etc.)
+├── phone (French format: 0X XX XX XX XX)
+├── first_name (French names: Jean, Marie, Pierre, etc.)
+├── last_name (French surnames: Martin, Dubois, Thomas, etc.)
+├── postal_code (French 5-digit codes)
+├── date_of_birth (18-90 years old, 40% coverage)
+├── overlap_type (TRIPLE, EMAIL, PHONE, NAME, DUPLICATE, NONE)
+└── created_at (generation timestamp)
+```
+
+### Column Inference Logic
+- **Email Detection**: Contains @, single @, no spaces, domain has dots
+- **Phone Detection**: French patterns, 8-10 digits after cleaning
+- **Name Detection**: Alphabetic, proper capitalization, 1-2 tokens
+- **Postal Detection**: 5-digit numeric strings
+- **ID Detection**: High uniqueness + alphanumeric patterns
+
+### Quality Validation
+- **Overlap Percentages**: Automatic validation of target overlap rates
+- **Data Completeness**: Monitoring of missing data percentages
+- **Duplication Rates**: Tracking duplicate customer patterns
+- **Format Consistency**: French localization standards
+
+## File Organization Standards
+- **snowpark/**: Snowflake-native Python code
+- **setup/**: Local development utilities
+- **data/**: Input/output data files (gitignored)
+- **docs/**: Project documentation
+- **snowflake.sql**: Database setup and validation queries
+
+## Testing Protocol
+1. **Small Scale**: 5K source → 10K target for development
+2. **Validation**: Overlap percentage verification
+3. **Quality Check**: Missing data and duplicate rates
+4. **Performance**: Execution time and resource usage
+5. **Scale Up**: Gradual increase to production volumes
+
+## Git Workflow
+- **Main Branch**: Production-ready code
+- **Feature Branches**: Development and testing
+- **Regular Commits**: Incremental progress tracking
+- **GitHub Integration**: Remote repository for collaboration
+
+## Dependencies
+- **Snowpark**: snowflake-snowpark-python
+- **Python**: 3.11+ for modern type hints and performance
+- **Conda**: Environment management with environment.yml
+- **Snowflake**: Account with Snowpark enabled
+
+## Future Enhancements
+- **Dynamic Sizing**: Runtime configuration of output volumes
+- **Advanced Noise**: More sophisticated data quality issues
+- **Multi-Region**: Different localization patterns
+- **Real-Time**: Streaming data generation capabilities
