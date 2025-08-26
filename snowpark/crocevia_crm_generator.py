@@ -254,7 +254,7 @@ def validate_overlap_results(customers_df: pd.DataFrame, source_customers_df: pd
     }
 
 
-def main(session: snowpark.Session) -> pd.DataFrame:
+def main(session: snowpark.Session) -> snowpark.DataFrame:
     """
     Main function to generate Crocevia CRM with controlled overlaps.
     
@@ -262,7 +262,7 @@ def main(session: snowpark.Session) -> pd.DataFrame:
         session: Snowflake Snowpark session
     
     Returns:
-        Sample of generated customers
+        Snowpark DataFrame with sample of generated customers
     """
     # Configuration - hardcoded for consistency with stored procedure pattern
     target_size = 10000
@@ -303,6 +303,8 @@ def main(session: snowpark.Session) -> pd.DataFrame:
     
     print("Crocevia CRM generation complete!")
     
-    return customers_df.sample(n=min(100, len(customers_df)))
+    # Return a Snowpark DataFrame (required for handler)
+    sample_df = customers_df.sample(n=min(100, len(customers_df)))
+    return session.create_dataframe(sample_df)
 
 
