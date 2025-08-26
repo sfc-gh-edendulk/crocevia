@@ -1,0 +1,76 @@
+---
+description: integrating git repos with Snowflake
+alwaysApply: false
+---
+### Instructions: Automate Snowflake Git Integration in Cursor (Using Current GitHub Repo URL)
+
+1. **Gather Prerequisites**
+
+   - Confirm that the required API integration object and Git credentials (secret) already exist in Snowflake.
+
+2. **Obtain Current GitHub Repo URL**
+
+   - Programmatically retrieve the remote origin of the current repository:
+
+     ```bash
+     git config --get remote.origin.url
+     ```
+
+   - Store this value as `<repo_url>` for later use.
+
+3. **Define Integration Variables in Cursor**
+
+   - Set placeholders or variables for:
+     - `<repo_stage_name>`: Name of the Snowflake Git repository stage.
+     - `<api_integration>`: Name of your pre-existing API integration object in Snowflake.
+     - `<git_secret>`: Name of your Git credentials secret.
+     - `<repo_url>`: (Obtained from previous step.)
+
+4. **Create or Replace Snowflake Git Repository Stage**
+
+   ```sql
+   CREATE OR REPLACE GIT REPOSITORY <repo_stage_name>
+     API_INTEGRATION = <api_integration>
+     GIT_CREDENTIALS = <git_secret>
+     ORIGIN = '<repo_url>';
+   ```
+
+5. **Sync (Fetch) Content from GitHub into Snowflake**
+
+   ```sql
+   ALTER GIT REPOSITORY <repo_stage_name> FETCH;
+   ```
+
+6. **Reference Files from the Repository Stage**
+
+   - To list files in the main branch:
+
+     ```sql
+     LIST @<repo_stage_name>/branches/main;
+     ```
+
+   - To execute a script from the repository:
+
+     ```sql
+     EXECUTE IMMEDIATE FROM @<repo_stage_name>/branches/main/my_script.sql;
+     ```
+
+   - (Optional) To run with template variables:
+
+     ```sql
+     EXECUTE IMMEDIATE FROM @<repo_stage_name>/branches/main/my_script.sql USING (ENVIRONMENT => 'uat');
+     ```
+
+7. **Recommended Workflow in Cursor**
+
+   - Code changes: Use Cursor’s Git panel to edit and commit locally, then push to GitHub.
+   - Integration: Use the variable `<repo_url>` from Git metadata each time you initiate a Snowflake integration.
+   - Operations: Run Snowflake SQL commands directly in Cursor’s notebook/sheet context.
+
+---
+
+**Note:**  
+These steps assume existing API integration and Git credentials in Snowflake. If those objects are not present, refer to your organization’s guidelines for creating and securing them. Each step can be automated within Cursor using scripting or notebook-based workflows. 
+
+Replace placeholders with your actual values as appropriate, or use Cursor’s variable substitution features.
+---
