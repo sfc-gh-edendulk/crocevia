@@ -254,20 +254,19 @@ def validate_overlap_results(customers_df: pd.DataFrame, source_customers_df: pd
     }
 
 
-def main(session: snowpark.Session, 
-         target_size: int = 10000, 
-         source_sample_size: int = 5000) -> pd.DataFrame:
+def main(session: snowpark.Session) -> pd.DataFrame:
     """
     Main function to generate Crocevia CRM with controlled overlaps.
     
     Args:
         session: Snowflake Snowpark session
-        target_size: Number of Crocevia customers to generate
-        source_sample_size: Sample size from source for overlaps
     
     Returns:
         Sample of generated customers
     """
+    # Configuration - hardcoded for consistency with stored procedure pattern
+    target_size = 10000
+    source_sample_size = 5000
     print("Loading Summit Sports customer data...")
     source_customers_df = session.table("SS_101.RAW_CUSTOMER.CUSTOMER_LOYALTY").to_pandas()
     print(f"Loaded {len(source_customers_df)} source customers")
@@ -315,7 +314,7 @@ if __name__ == "__main__":
     session = Session.builder.getOrCreate()
     
     try:
-        result = main(session, target_size=10000, source_sample_size=5000)
+        result = main(session)
         print(f"\nSample of generated data:\n{result.head()}")
     finally:
         session.close()
