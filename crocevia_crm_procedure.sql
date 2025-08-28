@@ -41,6 +41,113 @@ import random
 from faker import Faker
 
 
+def generate_french_addresses(fake: Faker, num_addresses: int, unique_pct: float = 0.80) -> list:
+    """
+    Generate realistic French addresses with coordinates.
+    
+    Args:
+        fake: Faker instance with fr_FR locale
+        num_addresses: Number of addresses to generate
+        unique_pct: Percentage of addresses that should be unique
+    
+    Returns:
+        List of address dictionaries with street, city, postal_code, lat, lng
+    """
+    # Sample of real French cities with approximate coordinates
+    french_cities = [
+        {"city": "Paris", "postal_prefix": "75", "lat": 48.8566, "lng": 2.3522},
+        {"city": "Marseille", "postal_prefix": "13", "lat": 43.2965, "lng": 5.3698},
+        {"city": "Lyon", "postal_prefix": "69", "lat": 45.7640, "lng": 4.8357},
+        {"city": "Toulouse", "postal_prefix": "31", "lat": 43.6047, "lng": 1.4442},
+        {"city": "Nice", "postal_prefix": "06", "lat": 43.7102, "lng": 7.2620},
+        {"city": "Nantes", "postal_prefix": "44", "lat": 47.2184, "lng": -1.5536},
+        {"city": "Strasbourg", "postal_prefix": "67", "lat": 48.5734, "lng": 7.7521},
+        {"city": "Montpellier", "postal_prefix": "34", "lat": 43.6110, "lng": 3.8767},
+        {"city": "Bordeaux", "postal_prefix": "33", "lat": 44.8378, "lng": -0.5792},
+        {"city": "Lille", "postal_prefix": "59", "lat": 50.6292, "lng": 3.0573},
+        {"city": "Rennes", "postal_prefix": "35", "lat": 48.1173, "lng": -1.6778},
+        {"city": "Reims", "postal_prefix": "51", "lat": 49.2583, "lng": 4.0317},
+        {"city": "Le Havre", "postal_prefix": "76", "lat": 49.4944, "lng": 0.1079},
+        {"city": "Saint-Étienne", "postal_prefix": "42", "lat": 45.4397, "lng": 4.3872},
+        {"city": "Toulon", "postal_prefix": "83", "lat": 43.1242, "lng": 5.9280},
+        {"city": "Angers", "postal_prefix": "49", "lat": 47.4784, "lng": -0.5632},
+        {"city": "Grenoble", "postal_prefix": "38", "lat": 45.1885, "lng": 5.7245},
+        {"city": "Dijon", "postal_prefix": "21", "lat": 47.3220, "lng": 5.0415},
+        {"city": "Nîmes", "postal_prefix": "30", "lat": 43.8367, "lng": 4.3601},
+        {"city": "Aix-en-Provence", "postal_prefix": "13", "lat": 43.5297, "lng": 5.4474},
+        {"city": "Le Mans", "postal_prefix": "72", "lat": 48.0061, "lng": 0.1996},
+        {"city": "Brest", "postal_prefix": "29", "lat": 48.3904, "lng": -4.4861},
+        {"city": "Tours", "postal_prefix": "37", "lat": 47.3941, "lng": 0.6848},
+        {"city": "Limoges", "postal_prefix": "87", "lat": 45.8336, "lng": 1.2611},
+        {"city": "Clermont-Ferrand", "postal_prefix": "63", "lat": 45.7797, "lng": 3.0863},
+        {"city": "Villeurbanne", "postal_prefix": "69", "lat": 45.7665, "lng": 4.8795},
+        {"city": "Amiens", "postal_prefix": "80", "lat": 49.8941, "lng": 2.2958},
+        {"city": "Metz", "postal_prefix": "57", "lat": 49.1193, "lng": 6.1757},
+        {"city": "Besançon", "postal_prefix": "25", "lat": 47.2380, "lng": 6.0243},
+        {"city": "Perpignan", "postal_prefix": "66", "lat": 42.6886, "lng": 2.8956},
+        {"city": "Orléans", "postal_prefix": "45", "lat": 47.9029, "lng": 1.9093},
+        {"city": "Caen", "postal_prefix": "14", "lat": 49.1829, "lng": -0.3707},
+        {"city": "Rouen", "postal_prefix": "76", "lat": 49.4431, "lng": 1.0993},
+        {"city": "Nancy", "postal_prefix": "54", "lat": 48.6921, "lng": 6.1844},
+        {"city": "Argenteuil", "postal_prefix": "95", "lat": 48.9474, "lng": 2.2473},
+        {"city": "Montreuil", "postal_prefix": "93", "lat": 48.8630, "lng": 2.4447},
+        {"city": "Mulhouse", "postal_prefix": "68", "lat": 47.7508, "lng": 7.3359},
+        {"city": "Roubaix", "postal_prefix": "59", "lat": 50.6927, "lng": 3.1746},
+        {"city": "Tourcoing", "postal_prefix": "59", "lat": 50.7236, "lng": 3.1609},
+        {"city": "La Rochelle", "postal_prefix": "17", "lat": 46.1603, "lng": -1.1511}
+    ]
+    
+    # Common French street prefixes
+    street_prefixes = [
+        "rue", "avenue", "boulevard", "place", "allée", "impasse", 
+        "chemin", "route", "passage", "square", "quai", "cours"
+    ]
+    
+    # Generate unique addresses
+    unique_count = int(num_addresses * unique_pct)
+    duplicate_count = num_addresses - unique_count
+    
+    addresses = []
+    
+    # Generate unique addresses
+    for i in range(unique_count):
+        city_info = random.choice(french_cities)
+        street_prefix = random.choice(street_prefixes)
+        street_name = fake.street_name()
+        
+        # Generate realistic street number
+        street_number = random.randint(1, 999)
+        
+        # Create full street address
+        street = str(street_number) + " " + street_prefix + " " + street_name
+        
+        # Generate postal code based on city prefix
+        postal_suffix = str(random.randint(100, 999)).zfill(3)
+        postal_code = city_info["postal_prefix"] + postal_suffix
+        
+        # Add small random offset to coordinates for realistic variance
+        lat_offset = random.uniform(-0.05, 0.05)  # ~5km variance
+        lng_offset = random.uniform(-0.05, 0.05)
+        
+        addresses.append({
+            "street": street,
+            "city": city_info["city"],
+            "postal_code": postal_code,
+            "latitude": round(city_info["lat"] + lat_offset, 6),
+            "longitude": round(city_info["lng"] + lng_offset, 6)
+        })
+    
+    # Add duplicate addresses by repeating some of the unique ones
+    if duplicate_count > 0:
+        duplicate_sources = random.choices(addresses, k=duplicate_count)
+        addresses.extend(duplicate_sources)
+    
+    # Shuffle to distribute duplicates randomly
+    random.shuffle(addresses)
+    
+    return addresses
+
+
 def generate_crocevia_customers(source_customers_df: pd.DataFrame, 
                               num_customers: int = 10000,
                               source_sample_size: int = 5000) -> pd.DataFrame:
@@ -74,6 +181,7 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
         # Data quality configuration
         self.DOB_PRESENT_PCT = 0.40     # 40% have date of birth
         self.POSTAL_PRESENT_PCT = 0.60  # 60% have postal codes
+        self.ADDRESS_PRESENT_PCT = 0.50 # 50% have complete addresses
         self.EMAIL_MISSING_PCT = 0.15   # 15% missing emails
         self.PHONE_MISSING_PCT = 0.20   # 20% missing phones
         self.DUPLICATE_PCT = 0.10       # 10% duplicate customers
@@ -134,6 +242,12 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
         self.email_indices = np.random.choice(remaining, size=self.email_extra_count, replace=False)
         self.phone_indices = np.random.choice(remaining, size=self.phone_extra_count, replace=False)
         self.name_indices = np.random.choice(remaining, size=self.name_extra_count, replace=False)
+        
+        # Generate addresses for 50% of customers
+        address_count = int(self.target_size * self.ADDRESS_PRESENT_PCT)
+        self.addresses = generate_french_addresses(self.faker, address_count, unique_pct=0.80)
+        self.address_indices = set(np.random.choice(range(self.target_size), size=address_count, replace=False))
+        self.address_idx = 0
 
     def _generate_synthetic_customer_data(self) -> pd.DataFrame:
         """Generate base synthetic customer data with French localization using Faker."""
@@ -152,26 +266,39 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
             # Use Faker email method but with French domains for localization
             if random.random() < 0.7:  # 70% use name-based emails
                 local = (first_name.lower() + "." + last_name.lower()).replace("\'", "").replace("ç", "c").replace("é", "e").replace("è", "e").replace("à", "a").replace("ù", "u")
-                domain = random.choice(french_domains)
+                domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
                 email = local + "@" + domain
             else:  # 30% use more varied patterns
                 email = self.faker.email()
                 # Replace domain with French one
                 local_part = email.split("@")[0]
-                domain = random.choice(french_domains)
+                domain = random.choice(self.FRENCH_EMAIL_DOMAINS)
                 email = local_part + "@" + domain
             
             # Generate French phone number using Faker
             phone = self.faker.phone_number()
-            
-            # Generate French postal code using Faker
-            postal_code = self.faker.postcode() if random.random() < self.POSTAL_PRESENT_PCT else None
             
             # Generate date of birth using Faker (18-90 years old)
             if random.random() < self.DOB_PRESENT_PCT:
                 date_of_birth = self.faker.date_of_birth(minimum_age=18, maximum_age=90)
             else:
                 date_of_birth = None
+            
+            # Add address information if this customer should have one
+            if i in self.address_indices:
+                address = self.addresses[self.address_idx]
+                self.address_idx += 1
+                street = address["street"]
+                city = address["city"]
+                postal_code = address["postal_code"]
+                latitude = address["latitude"]
+                longitude = address["longitude"]
+            else:
+                street = None
+                city = None
+                postal_code = self.faker.postcode() if random.random() < self.POSTAL_PRESENT_PCT else None
+                latitude = None
+                longitude = None
             
             customers.append({
                 "row_id": i,
@@ -180,7 +307,11 @@ def generate_crocevia_customers(source_customers_df: pd.DataFrame,
                 "last_name": last_name,
                 "email": email,
                 "phone": phone,
+                "street": street,
+                "city": city,
                 "postal_code": postal_code,
+                "latitude": latitude,
+                "longitude": longitude,
                 "date_of_birth": date_of_birth,
                 "overlap_type": "NONE"
             })
