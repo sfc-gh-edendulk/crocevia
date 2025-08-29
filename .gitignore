@@ -59,6 +59,7 @@ Thumbs.db
 # Data folder contents (preserve locally but don't commit)
 data/adresses-france.csv.gz
 data/lieux-dits-beta-france.csv.gz
+data/carrefour_stores_france.csv
 data/summit_sports_crm.parquet
 data/crocevia_crm.parquet
 data/*.parquet
