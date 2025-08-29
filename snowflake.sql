@@ -4,23 +4,30 @@
 USE DATABASE SS_RAW;
 CREATE OR REPLACE SCHEMA SS_BRONZE;
 
-CREATE STAGE IF NOT EXISTS SS_RAW.SS_BRONZE.SS_BRONZE_STAGE;
+CREATE STAGE IF NOT EXISTS CROCEVIA_DB.RAW_DATA.CR_BRONZE_STAGE;
 
-CREATE FILE FORMAT IF NOT EXISTS SS_RAW.SS_BRONZE.PARQUET_EXPORT_FORMAT
+CREATE FILE FORMAT IF NOT EXISTS CROCEVIA_DB.RAW_DATA.PARQUET_EXPORT_FORMAT
   TYPE = PARQUET
   COMPRESSION = SNAPPY;
 
 SHOW STAGES;
 
-COPY INTO @SS_RAW.SS_BRONZE.SS_BRONZE_STAGE/summit_sports_crm.parquet
-FROM SS_101.RAW_CUSTOMER.CUSTOMER_LOYALTY
-FILE_FORMAT = (FORMAT_NAME = 'SS_RAW.SS_BRONZE.PARQUET_EXPORT_FORMAT')
-SINGLE = TRUE
+COPY INTO @CROCEVIA.RAW_DATA.CR_BRONZE_STAGE/crocevia_crm.parquet
+FROM CROCEVIA.RAW_DATA.CROCEVIA_CRM
+FILE_FORMAT = (FORMAT_NAME = 'CROCEVIA.RAW_DATA.PARQUET_EXPORT_FORMAT')
+--SINGLE = TRUE
 OVERWRITE = TRUE
-MAX_FILE_SIZE = 5000000000;
+--MAX_FILE_SIZE = 5000000000
+;
 
 -- Download to local (requires SnowSQL)
-GET @SS_RAW.SS_BRONZE.SS_BRONZE_STAGE/summit_sports_crm.parquet file:///Users/edendulk/code/crocevia/data;
+GET @CROCEVIA.RAW_DATA.CR_BRONZE_STAGE/crocevia_crm.parquet file:///Users/edendulk/code/crocevia/data;
+
+put file:///Users/edendulk/code/crocevia/data/adresses-france.csv.gz @CROCEVIA_DB.RAW_DATA.CR_BRONZE_STAGE;
+
+put file:///Users/edendulk/code/crocevia/data/lieux-dits-beta-france.csv.gz @CROCEVIA_DB.RAW_DATA.CR_BRONZE_STAGE;
+
+put file:///Users/edendulk/code/crocevia/data/summit_sports_crm.parquet @CROCEVIA_DB.RAW_DATA.CR_BRONZE_STAGE;
 
 -- ================================
 -- CROCEVIA CRM SETUP
@@ -28,6 +35,12 @@ GET @SS_RAW.SS_BRONZE.SS_BRONZE_STAGE/summit_sports_crm.parquet file:///Users/ed
 -- Create Crocevia database and schema
 CREATE DATABASE IF NOT EXISTS CROCEVIA;
 CREATE SCHEMA IF NOT EXISTS CROCEVIA.RAW_DATA;
+
+show API integrations;
+CREATE OR REPLACE GIT REPOSITORY crocevia_repo
+  API_INTEGRATION = git_api_integration
+  GIT_CREDENTIALS = git_secret
+  ORIGIN = 'https://github.com/my-account/snowflake-extensions.git';
 
 USE DATABASE CROCEVIA;
 USE SCHEMA RAW_DATA;

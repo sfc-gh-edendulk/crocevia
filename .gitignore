@@ -55,6 +55,7 @@ Thumbs.db
 *.parquet
 *.json
 !**/schemas/*.json
+*/
 
 # Data folder contents (preserve locally but don't commit)
 data/adresses-france.csv.gz
@@ -65,6 +66,7 @@ data/crocevia_crm.parquet
 data/*.parquet
 data/*.csv
 data/*.csv.gz
+data/*.txt
 
 # Logs
 *.log
