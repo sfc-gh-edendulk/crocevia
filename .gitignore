@@ -55,7 +55,9 @@ Thumbs.db
 *.parquet
 *.json
 !**/schemas/*.json
+# Ignore top-level directories by default but allow demo workspace
 */
+!crocevia_c360/
 
 # Data folder contents (preserve locally but don't commit)
 data/adresses-france.csv.gz
@@ -76,3 +78,8 @@ data/*.txt
 *.key
 config.ini
 secrets.yaml
+*.p8
+# Snowflake keys
+*.pem
+*.p8
+*.pub
