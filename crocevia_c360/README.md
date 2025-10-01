@@ -25,6 +25,10 @@ End-to-end Snowflake demo showcasing Snowpark ML segmentation and a Streamlit pr
 ## Run Book
 
 
+1. **Prerequisite check**
+   - Run `snowflake_sql/check_sales_date_spine.sql` in Snowsight Worksheets.
+   - Review missing date ranges; if evenly spaced gaps or large intervals appear, address Bronze ingestion before notebook execution.
+
 ### Handling date spine gaps
 
 The notebook automatically checks `CROCEVIA_DB.BRONZE_DATA.CROCEVIA_SALES_20PCT_STORES` for missing days. If gaps exist, it falls back to the longest contiguous window and prints the adjusted start/end dates. If the reduced window is not acceptable, investigate upstream Bronze loaders before rerunning the notebook.

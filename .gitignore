@@ -58,6 +58,7 @@ Thumbs.db
 # Ignore top-level directories by default but allow demo workspace
 */
 !crocevia_c360/
+!crocevia_c360/**
 
 # Data folder contents (preserve locally but don't commit)
 data/adresses-france.csv.gz
