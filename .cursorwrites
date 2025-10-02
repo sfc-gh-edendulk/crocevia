@@ -65,3 +65,5 @@ Snowflake and data generation rules for Crocevia project
 - Before coding in any project, run a SnowCLI describe/preview for each referenced table to align code with the actual schema
 
 - When modeling in Snowpark ML, explicitly cast DECIMAL/NUMERIC features to DOUBLE before scaling/training to avoid implicit Decimal(38, 12) -> DoubleType conversion and precision warnings.
+
+- For Snowpark ML model persistence, pass sample_input_data (e.g., 100 rows) to model.save to avoid auto schema inference on large datasets and ensure deterministic signatures.
