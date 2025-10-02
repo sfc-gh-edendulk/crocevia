@@ -51,3 +51,15 @@ Snowflake and data generation rules for Crocevia project
 - Notebook: notebooks/crocevia_c360_audience_segmentation.ipynb
 - Streamlit app: streamlit/customer_recommender.py
 - Docs: README.md, docs/runbook.md, docs/changelog.md
+
+10) Data validation workflow
+- Before coding (and whenever debugging), use the relevant SnowCLI connection to inspect referenced Snowflake tables so notebook logic matches actual schemas
+
+11) Learning capture
+- After every new guideline or clarification (including Streamlit display requirements), append it here so the rulebook stays current
+
+12) Snowflake notebook hygiene
+- Default to Streamlit primitives (`st.write`, `st.dataframe`, etc.) for output in Snowsight notebooks
+
+13) Schema verification
+- Before coding in any project, run a SnowCLI describe/preview for each referenced table to align code with the actual schema
