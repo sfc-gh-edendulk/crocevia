@@ -35,8 +35,29 @@ def load_segment_summary(session: Session):
         F.count("CUSTOMER_ID").alias("CUSTOMER_COUNT"),
         F.avg("MONETARY_VALUE").alias("AVG_MONETARY"),
         F.avg("PURCHASE_FREQUENCY").alias("AVG_FREQUENCY"),
-        F.avg("RECENCY_DAYS").alias("AVG_RECENCY")
-    ).sort(F.col("AVG_MONETARY").desc()).to_pandas()
+        F.avg("RECENCY_DAYS").alias("AVG_RECENCY"),
+        F.sum("MONETARY_VALUE").alias("TOTAL_MONETARY")
+    ).sort(F.col("TOTAL_MONETARY").desc()).to_pandas()
+
+
+@st.cache_data(show_spinner=False)
+def load_kpi_summary(session: Session):
+    kpi_row = session.table(SEGMENT_TABLE).agg(
+        F.sum("MONETARY_VALUE").alias("TOTAL_REVENUE"),
+        F.count_distinct("CUSTOMER_ID").alias("ACTIVE_CUSTOMERS"),
+        F.avg("MONETARY_VALUE").alias("AVG_MONETARY"),
+        F.avg("PURCHASE_FREQUENCY").alias("AVG_FREQUENCY")
+    ).collect()[0]
+    recommendation_row = session.table(PRODUCT_REC_TABLE).agg(
+        F.count_distinct("PRODUCT_ID").alias("PRODUCTS_RECOMMENDED")
+    ).collect()[0]
+    return {
+        "total_revenue": kpi_row["TOTAL_REVENUE"],
+        "active_customers": kpi_row["ACTIVE_CUSTOMERS"],
+        "avg_monetary": kpi_row["AVG_MONETARY"],
+        "avg_frequency": kpi_row["AVG_FREQUENCY"],
+        "products_recommended": recommendation_row["PRODUCTS_RECOMMENDED"],
+    }
 
 
 @st.cache_data(show_spinner=False)
@@ -79,16 +100,37 @@ def main():
     session.use_schema("GOLD_ANALYTICS")
     session.use_warehouse("CROCEVIA_WH")
 
-    cols = st.columns([2, 1])
-    with cols[0]:
+    kpi_summary = load_kpi_summary(session)
+    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+    kpi_col1.metric("Total revenue", f"€{kpi_summary['total_revenue']:,.0f}")
+    kpi_col2.metric("Active known customers", f"{kpi_summary['active_customers']:,}")
+    kpi_col3.metric("Avg monetary", f"€{kpi_summary['avg_monetary']:,.0f}")
+    kpi_col4.metric("Recommended products", f"{kpi_summary['products_recommended']:,}")
+
+    segment_summary = load_segment_summary(session)
+    seg_cols = st.columns([2, 1])
+    with seg_cols[0]:
         st.subheader("Customer Selection")
         customer_options = session.table(SEGMENT_TABLE).select("CUSTOMER_ID").distinct().order_by("CUSTOMER_ID").limit(1000).to_pandas()["CUSTOMER_ID"].tolist()
         customer_id = st.selectbox("Choose customer id", customer_options)
 
-    with cols[1]:
+    with seg_cols[1]:
         st.subheader("Segment Insights")
-        segment_summary = load_segment_summary(session)
-        st.dataframe(segment_summary, hide_index=True, use_container_width=True)
+        tabs = st.tabs(["Table", "AOV vs Frequency"])
+        with tabs[0]:
+            st.dataframe(segment_summary.drop(columns=["TOTAL_MONETARY"]), hide_index=True, use_container_width=True)
+        with tabs[1]:
+            scatter_df = segment_summary.rename(columns={
+                "SEGMENT_LABEL": "Segment",
+                "AVG_MONETARY": "Average monetary",
+                "AVG_FREQUENCY": "Average frequency"
+            })
+            st.scatter_chart(
+                scatter_df,
+                x="Average frequency",
+                y="Average monetary",
+                color="Segment"
+            )
 
     if not customer_id:
         st.stop()
@@ -128,7 +170,12 @@ def main():
     if lookalike_df.empty:
         st.info("No lookalike scores yet.")
     else:
-        st.dataframe(lookalike_df[["CUSTOMER_ID", "DISTANCE_TO_TOP_BUYERS", "LOOKALIKE_RANK"]], hide_index=True, use_container_width=True)
+        lookalike_tab1, lookalike_tab2 = st.tabs(["Table", "Chart"])
+        with lookalike_tab1:
+            st.dataframe(lookalike_df[["CUSTOMER_ID", "DISTANCE_TO_TOP_BUYERS", "LOOKALIKE_RANK"]], hide_index=True, use_container_width=True)
+        with lookalike_tab2:
+            chart_df = lookalike_df[["CUSTOMER_ID", "DISTANCE_TO_TOP_BUYERS"]].set_index("CUSTOMER_ID")
+            st.bar_chart(chart_df)
 
     st.markdown("---")
     st.caption("For governance: model run metadata at CROCEVIA_DB.GOLD_ANALYTICS.C360_MODEL_RUN_AUDIT")
