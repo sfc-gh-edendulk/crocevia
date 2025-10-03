@@ -67,3 +67,11 @@ Snowflake and data generation rules for Crocevia project
 - When modeling in Snowpark ML, explicitly cast DECIMAL/NUMERIC features to DOUBLE before scaling/training to avoid implicit Decimal(38, 12) -> DoubleType conversion and precision warnings.
 
 - For Snowpark ML model persistence, pass sample_input_data (e.g., 100 rows) to model.save to avoid auto schema inference on large datasets and ensure deterministic signatures.
+
+- Modeling hygiene and join safety:
+  - Verify join key uniqueness; deduplicate dimension/CRM tables before joins; guard for join explosions (row count vs distinct id).
+  - Enforce one row per entity in features; drop duplicates by primary key before modeling.
+  - Deduplicate predictions per entity before writes to GOLD.
+  - Use dynamic schema introspection with column fallbacks; avoid hard-coded optional column names.
+  - Segment sanity checks: ensure minimum cluster size; adjust n_clusters or merge tiny clusters if needed.
+  - Always state the strictly necessary cells to rerun after edits.
